@@ -32,7 +32,7 @@ clean:
 
 
 
-test: .keys/miximus.pk.raw 
+test: .keys/ssles.pk.raw 
 
 .keys/ssles.pk.raw: $(CLI)
 	mkdir -p $(dir $@)
