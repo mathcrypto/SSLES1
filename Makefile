@@ -1,4 +1,4 @@
-CLI = .build/miximus_cli
+CLI = .build/ssles_cli
 CMAKE ?= cmake
 GIT ?= git
 
@@ -28,16 +28,12 @@ git-pull:
 	$(GIT) submodule update --recursive --remote
 
 clean:
-	rm -rf .build solidity/node_modules
+	rm -rf .build 
 
-python-test:
-	$(MAKE) -C python test
 
-solidity-test:
-	$(MAKE) -C solidity test
 
-test: .keys/miximus.pk.raw solidity-test python-test
+test: .keys/miximus.pk.raw 
 
-.keys/miximus.pk.raw: $(CLI)
+.keys/ssles.pk.raw: $(CLI)
 	mkdir -p $(dir $@)
-	$(CLI) genkeys .keys/miximus.pk.raw .keys/miximus.vk.json
+	$(CLI) genkeys .keys/ssles.pk.raw .keys/ssles.vk.json
