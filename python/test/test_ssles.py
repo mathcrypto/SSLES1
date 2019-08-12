@@ -21,6 +21,7 @@ class TestSssles(unittest.TestCase):
 
 	
 		secret = int(FQ.random())
+		msg = int(FQ.random())
 		leaf_hash = mimc_hash([secret])
 		prehash = mimc_hash([msg])
 		leaf_idx = tree.append(leaf_hash)
