@@ -26,13 +26,16 @@ git-submodules:
 git-pull:
 	$(GIT) pull --recurse-submodules
 	$(GIT) submodule update --recursive --remote
-
+	
 clean:
 	rm -rf .build 
+python-test:
+	$(MAKE) -C python test
 
 
 
-test: .keys/ssles.pk.raw 
+test: .keys/ssles.pk.raw  python-test
+
 
 .keys/ssles.pk.raw: $(CLI)
 	mkdir -p $(dir $@)
