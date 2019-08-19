@@ -31,10 +31,12 @@ clean:
 	rm -rf .build 
 python-test:
 	$(MAKE) -C python test
+solidity-test:
+	$(MAKE) -C solidity test
 
 
 
-test: .keys/ssles.pk.raw  python-test
+test: .keys/ssles.pk.raw  python-test solidity-test
 
 
 .keys/ssles.pk.raw: $(CLI)
