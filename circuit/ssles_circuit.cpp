@@ -76,116 +76,98 @@ namespace ssles {
 
 
     class ssles_circuit : public GadgetT
-    {
-    public:
-        typedef MiMC_hash_gadget HashT; 
-        typedef jubjub::PureEdDSA eddsa_verify;
-    //std::shared_ptr<ethsnarks::jubjub::PureEdDSA> eddsa_verify;
-
-        const size_t tree_depth = SSLES_TREE_DEPTH;
+{
+public:
+    typedef MiMC_hash_gadget HashT;
+    const size_t tree_depth = SSLES_TREE_DEPTH;
 
     // public inputs
+    const VariableT pub_hash_var;
 
-    const VariableT pub_hash_var; //Used to reduce the number of public inputs 
+    // hashed public inputs
     const VariableT root_var;
+    const VariableT external_hash_var;
     const VariableT hash_var; // H(signed(msg))
 
     // public constants
     const VariableArrayT m_IVs;
 
     // constant inputs
-
     const VariableT zero;
 
     // private inputs
-
-    const VariableT pub_key; // preimage of the leaf digest 
-    const VariableT msg_var; 
-    const VariableArrayT path_var; // merkle authentication path array
-    dual_variable_gadget<FieldT> address_bits; // leaf offset (in bits, little-endian)
-
-    // inputs from eddsa gadget  Signature= (S,R)
-    const VariableArrayT s; // s (256bit)
-    const VariableArrayT Rx; //   Rx (256bit)
-    const VariableArrayT Ry; // Ry (256bit)
-
-    
-    //const Params in_params;  // params a and d from Edward curve
-    //const EdwardsPoint in_base;    // B
-    //const VariablePointT RSig;     // R=r.B
-    //const VariableArrayT msg; // public random number m
-    //const VariablePointT pk; //  public key   pk=s.B
-    
+    const VariableT secret_var;
+    const VariableT msg_var;
+    dual_variable_gadget<FieldT> address_bits;
+    const VariableArrayT path_var;
 
     // logic gadgets
 
     HashT pub_hash;
-    HashT sig_msg_hash; 
     HashT leaf_hash;
-    merkle_path_authenticator<HashT> m_auth; 
+    HashT sig_msg_hash; 
+    merkle_path_authenticator<HashT> m_authenticator;
 
-    ssles_circuit(
+    (
         ProtoboardT &in_pb,
         const std::string &annotation_prefix
-        ) :
-    GadgetT(in_pb, annotation_prefix),
+    ) :
+        GadgetT(in_pb, annotation_prefix),
 
         // public inputs
-    pub_hash_var(make_variable(in_pb, FMT(annotation_prefix, ".pub_hash_var"))),
+        pub_hash_var(make_variable(in_pb, FMT(annotation_prefix, ".pub_hash_var"))),
 
         // hashed public inputs
-    root_var(make_variable(in_pb, FMT(annotation_prefix, ".root_var"))),
-    hash_var(make_variable(in_pb, FMT(annotation_prefix, ".hash_var"))),
+        root_var(make_variable(in_pb, FMT(annotation_prefix, ".root_var"))),
+        external_hash_var(make_variable(in_pb, FMT(annotation_prefix, ".external_hash_var"))),
+        hash_var(make_variable(in_pb, FMT(annotation_prefix, ".hash_var"))),
 
-    // Initialisation vector for merkle tree hard-coded constants
-    // Means that H('a', 'b') on level1 will have a different output than the same values on level2
-    m_IVs(merkle_tree_IVs(in_pb)),
+        // Initialisation vector for merkle tree hard-coded constants
+        // Means that H('a', 'b') on level1 will have a different output than the same values on level2
+        m_IVs(merkle_tree_IVs(in_pb)),
 
-    // constant zero, used as IV for hash functions
-    zero(make_variable(in_pb, FMT(annotation_prefix, ".zero"))),
+        // constant zero, used as IV for hash functions
+        zero(make_variable(in_pb, FMT(annotation_prefix, ".zero"))),
 
         // private inputs
-    pub_key(make_variable(in_pb, FMT(annotation_prefix, ".pub_key"))),
-    address_bits(in_pb, tree_depth, FMT(annotation_prefix, ".address_bits")), 
-    path_var(make_var_array(in_pb, tree_depth, FMT(annotation_prefix, ".path"))),
-    msg_var(make_variable(in_pb, FMT(annotation_prefix, ".msg_var"))),
-    sig_msg_hash(in_pb, zero, {msg_var}, FMT(annotation_prefix, ".msg_var")), 
+        secret_var(make_variable(in_pb, FMT(annotation_prefix, ".secret_var"))),
+        msg_var(make_variable(in_pb, FMT(annotation_prefix, ".msg_var"))),
+        address_bits(in_pb, tree_depth, FMT(annotation_prefix, ".address_bits")),
+        path_var(make_var_array(in_pb, tree_depth, FMT(annotation_prefix, ".path"))),
+   
 
-        // pub_hash = H(root, hash_var)
 
-    pub_hash(in_pb, zero, {root_var, sig_msg_hash.result()}, FMT(annotation_prefix, ".pub_hash")),
+       
+
+        // pub_hash = H(root, hash_var, external_hash)
+        pub_hash(in_pb, zero, {root_var, hash_var, external_hash_var}, FMT(annotation_prefix, ".pub_hash")),
 
         // leaf_hash = H(secret)
-
-    leaf_hash(in_pb, zero, {pub_key}, FMT(annotation_prefix, ".leaf_hash")),
+        leaf_hash(in_pb, zero, {secret_var}, FMT(annotation_prefix, ".leaf_hash")),
+        sig_msg_hash(in_pb, zero, {msg_var}, FMT(annotation_prefix, ".msg_var")),
 
         // assert merkle_path_authenticate(leaf_hash, path, root)
-
-    m_auth(in_pb, tree_depth, address_bits.bits, m_IVs, leaf_hash.result(), root_var, path_var, FMT(annotation_prefix, ".auth"))
+        m_authenticator(in_pb, tree_depth, address_bits.bits, m_IVs, leaf_hash.result(), root_var, path_var, FMT(annotation_prefix, ".authenticator"))
     {
         // Only one public input variable is passed, which is `pub_hash`
         // The actual values are provided as private inputs
         in_pb.set_input_sizes( 1 );
 
-
+   
     }
 
     void generate_r1cs_constraints()
     {
-
-        sig_msg_hash.generate_r1cs_constraints();
-        this->pb.add_r1cs_constraint(
-            ConstraintT(hash_var, FieldT::one(), sig_msg_hash.result()),
-            ".hash_var == H(msg_var)");
+       
+       
+     
         address_bits.generate_r1cs_constraints(true);
 
         // Ensure privately provided public inputs match the hashed input
         pub_hash.generate_r1cs_constraints();
         this->pb.add_r1cs_constraint(
             ConstraintT(pub_hash_var, FieldT::one(), pub_hash.result()),
-            ".pub_hash_var == H(root, sig_msg_hash)");
-
-
+            ".pub_hash_var == H(root, hash_var, external_hash)");
 
         // Enforce zero internally
         this->pb.add_r1cs_constraint(
@@ -193,44 +175,44 @@ namespace ssles {
             "0 * 0 == 0 - 0 ... zero is zero!");
 
         leaf_hash.generate_r1cs_constraints();
-        m_auth.generate_r1cs_constraints();
+        sig_msg_hash.generate_r1cs_constraints();
+        m_authenticator.generate_r1cs_constraints();
     }
 
     void generate_r1cs_witness(
         const FieldT in_root,         // merkle tree root
-        const FieldT in_prehash,      
-        const FieldT in_secret,     
+        const FieldT in_exthash,
+        const FieldT in_prehash,         
+        const FieldT in_secret,     // secret pubkey
         const FieldT in_msg,     
         const libff::bit_vector in_address,
         const std::vector<FieldT> &in_path
-        ) {
+    ) {
         // hashed public inputs
         this->pb.val(root_var) = in_root;
+        this->pb.val(external_hash_var) = in_exthash;
         this->pb.val(hash_var) = in_prehash;
-        
 
         // private inputs
-        this->pb.val(pub_key) = in_secret;
+        this->pb.val(secret_var) = in_secret;
         this->pb.val(msg_var) = in_msg;
         address_bits.bits.fill_with_bits(this->pb, in_address);
         address_bits.generate_r1cs_witness_from_bits();
+        
 
-
-        sig_msg_hash.generate_r1cs_witness();
 
         // public hash
-        this->pb.val(pub_hash_var) = mimc_hash({in_root, this->pb.val(sig_msg_hash.result())});
+        this->pb.val(pub_hash_var) = mimc_hash({in_root, in_prehash, in_exthash});
         pub_hash.generate_r1cs_witness();
 
         for( size_t i = 0; i < tree_depth; i++ )
         {
             this->pb.val(path_var[i]) = in_path[i];
         }
+
         leaf_hash.generate_r1cs_witness();
-
-
-
-        m_auth.generate_r1cs_witness();
+        sig_msg_hash.generate_r1cs_witness();
+        m_authenticator.generate_r1cs_witness();
     }
 };
 
@@ -245,22 +227,22 @@ size_t ssles_tree_depth( void ) {
 
 
 
-
 static char *ssles_prove_internal(
     const char *pk_file,
     const FieldT arg_root,
+    const FieldT arg_exthash,
     const FieldT arg_prehash,
     const FieldT arg_secret,
     const FieldT arg_msg,
     const libff::bit_vector address_bits,
     const std::vector<FieldT> arg_path
-    )
+)
 {
     // Create protoboard with gadget
     ProtoboardT pb;
     ssles::ssles_circuit mod(pb, "ssles");
     mod.generate_r1cs_constraints();
-    mod.generate_r1cs_witness(arg_root, arg_prehash, arg_secret, arg_msg, address_bits, arg_path);
+    mod.generate_r1cs_witness(arg_root, arg_exthash, arg_prehash, arg_secret, arg_msg, address_bits, arg_path);
 
     if( ! pb.is_satisfied() )
     {
@@ -276,18 +258,20 @@ static char *ssles_prove_internal(
 }
 
 
-char *ssles_prove_json( const char *pk_file, const char *in_json )
+char *miximus_prove_json( const char *pk_file, const char *in_json )
 {
     ppT::init_public_params();
 
     const auto root = json::parse(in_json);
     const auto arg_root = ethsnarks::parse_FieldT(root.at("root"));
     const auto arg_secret = ethsnarks::parse_FieldT(root.at("secret")); 
+    const auto arg_msg = ethsnarks::parse_FieldT(root.at("msg")); 
+    const auto arg_exthash = ethsnarks::parse_FieldT(root.at("exthash"));
     const auto arg_prehash = ethsnarks::parse_FieldT(root.at("prehash"));
-    const auto arg_msg = ethsnarks::parse_FieldT(root.at("message"));
+
 
     const auto arg_path = ethsnarks::create_F_list(root.at("path"));
-    if( arg_path.size() != SSLES_TREE_DEPTH )
+    if( arg_path.size() != MIXIMUS_TREE_DEPTH )
     {
         std::cerr << "Path length doesn't match tree depth" << std::endl;
         return nullptr;
@@ -303,28 +287,30 @@ char *ssles_prove_json( const char *pk_file, const char *in_json )
         address_bits[i] = (address & (1u<<i)) != 0;
     }
 
-    return ssles_prove_internal(pk_file, arg_root, arg_prehash, arg_secret, arg_msg, address_bits, arg_path);
+    return ssles_prove_internal(pk_file, arg_root, arg_exthash, arg_prehash, arg_secret, arg_msg, address_bits, arg_path);
 }
 
 
-char *ssles_prove(
+char *miximus_prove(
     const char *pk_file,
     const char *in_root,
+    const char *in_exthash,
     const char *in_prehash,
     const char *in_secret,
     const char *in_msg,
     const char *in_address,
     const char **in_path
-    ) {
+) {
     ppT::init_public_params();
 
     const FieldT arg_root(in_root);
+    const FieldT arg_exthash(in_exthash);
     const FieldT arg_secret(in_secret);
-    const FieldT arg_prehash(in_prehash);
     const FieldT arg_msg(in_msg);
+    const FieldT arg_prehash(in_prehash);
 
     // Fill address bits with 0s and 1s from str
-
+  
     libff::bit_vector address_bits;
     address_bits.resize(SSLES_TREE_DEPTH);
     if( strlen(in_address) != SSLES_TREE_DEPTH )
@@ -349,13 +335,13 @@ char *ssles_prove(
         arg_path[i] = FieldT(in_path[i]);
     }
 
-    return ssles_prove_internal(pk_file, arg_root, arg_prehash, arg_secret, arg_msg, address_bits, arg_path);
+    return ssles_prove_internal(pk_file, arg_root, arg_exthash, arg_prehash, arg_secret, arg_msg,  address_bits, arg_path);
 }
 
 
 int ssles_genkeys( const char *pk_file, const char *vk_file )
 {
-    return ethsnarks::stub_genkeys<ssles::ssles_circuit>(pk_file, vk_file);
+    return ethsnarks::stub_genkeys<ssles::mod_miximus>(pk_file, vk_file);
 }
 
 
