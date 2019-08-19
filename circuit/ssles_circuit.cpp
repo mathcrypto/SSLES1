@@ -258,7 +258,7 @@ static char *ssles_prove_internal(
 }
 
 
-char *miximus_prove_json( const char *pk_file, const char *in_json )
+char *ssles_prove_json( const char *pk_file, const char *in_json )
 {
     ppT::init_public_params();
 
@@ -291,7 +291,7 @@ char *miximus_prove_json( const char *pk_file, const char *in_json )
 }
 
 
-char *miximus_prove(
+char *ssles_prove(
     const char *pk_file,
     const char *in_root,
     const char *in_exthash,
