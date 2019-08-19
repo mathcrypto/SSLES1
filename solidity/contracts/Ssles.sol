@@ -13,6 +13,7 @@ contract Ssles
 
     // Stores all of the valid merkle tree roots
     mapping (uint256 => bool) public roots;
+    mapping (uint256 => bool) public nullifiers;
 
 
     MerkleTree.Data internal tree;
@@ -23,7 +24,7 @@ contract Ssles
     */
     event OnBroadcast( uint256 leaf_hash, uint256 leaf_index );
 
-    event OnWithdraw( );
+    event OnWithdraw(uint256 nullifier );
     /**
    
     /**
