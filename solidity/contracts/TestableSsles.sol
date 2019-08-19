@@ -1,16 +1,13 @@
 pragma solidity ^0.5.0;
 
-import "./Miximus.sol";
+import "./Ssles.sol";
 
 
-// Please note, it saves a lot of gas to use the `vk2sol`
-// utility to generate Solidity code, hard-coding the
-// verifying key avoids the cost of loading from storage.
-
-contract TestableMiximus is Miximus
+contract TestableSsles is Ssles
 {
     uint256[14] private m_vk;
-    uint256[] private m_gammaABC;
+    uint256[] private m_gammaAOnWithdraw
+    C;
 
     constructor( uint256[14] memory in_vk, uint256[] memory in_gammaABC )
         public
