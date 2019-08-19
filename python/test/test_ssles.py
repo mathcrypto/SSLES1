@@ -12,24 +12,27 @@ VK_PATH = '../.keys/ssles.vk.json'
 PK_PATH = '../.keys/ssles.pk.raw'
 
 
-class TestSssles(unittest.TestCase):
+class TestSsles(unittest.TestCase):
 	def test_make_proof(self):
 		n_items = 2<<28
 		tree = MerkleTree(n_items)
 		for n in range(0, 2):
 			tree.append(int(FQ.random()))
 
-	
-		secret = int(FQ.random())
-		msg = int(FQ.random())
-		leaf_hash = mimc_hash([secret])
-		prehash = mimc_hash([msg])
-		leaf_idx = tree.append(leaf_hash)
-		self.assertEqual(leaf_idx, tree.index(leaf_hash))
-
+			exthash = int(FQ.random())
+			prehash = int(FQ.random())
+			secret = int(FQ.random())
+			msg = int(FQ.random())
+			leaf_hash = mimc_hash([secret])
+			sig_msg_hash = mimc_hash([msg])
+			leaf_idx = tree.append(leaf_hash)
+			self.assertEqual(leaf_idx, tree.index(leaf_hash))
+			
 		# Verify it exists in true
 		leaf_proof = tree.proof(leaf_idx)
 		self.assertTrue(leaf_proof.verify(tree.root))
+		self.assertTrue(prehash, sig_msg_hash)
+
 
 		# Generate proof		
 		wrapper = Ssles(NATIVE_LIB_PATH, VK_PATH, PK_PATH)
@@ -37,16 +40,16 @@ class TestSssles(unittest.TestCase):
 		snark_proof = wrapper.prove(
 			tree.root,
 			secret,
-			prehash,
 			msg,
+			exthash,
+			prehash,
 			leaf_proof.address,
 			leaf_proof.path)
-		     
-          
-       
 
 		self.assertTrue(wrapper.verify(snark_proof))
 
 
-if __name__ == "__main__":
-	unittest.main()
+		if __name__ == "__main__":
+			unittest.main()
+
+	
