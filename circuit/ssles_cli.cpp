@@ -18,16 +18,17 @@ using ssles::ssles_circuit;
 
 static int main_prove( int argc, char **argv )
 {
-    if( argc < (10 + (int)SSLES_TREE_DEPTH) )
+    if( argc < (11 + (int)SSLES_TREE_DEPTH) )
     {
-        cerr << "Usage: " << argv[0] << " prove <pk.raw> <proof.json> <public:root> <public:prehash>  <secret:pubkey><secret:msg> <secret:merkle-address> <secret:merkle-path ...>" << endl;
+        cerr << "Usage: " << argv[0] << " prove <pk.raw> <proof.json> <public:root> <public:exthash> <secret:secret> <secret:merkle-address> <secret:merkle-path ...>" << endl;
         cerr << "Args: " << endl;
         cerr << "\t<pk.raw>         Path to proving key" << endl;
         cerr << "\t<proof.json>     Write proof to this file" << endl;
         cerr << "\t<root>           Merkle tree root" << endl;
+        cerr << "\t<exthash>        Hash of external variables" << endl;
         cerr << "\t<secret>         Spend secret" << endl;
+        cerr << "\t<msg>         message" << endl;
         cerr << "\t<prehash>        Hash of signed message" << endl;
-        cerr << "\t<msg>            message" << endl;
         cerr << "\t<merkle-address> 0 and 1 bits for tree path" << endl;
         cerr << "\t<merkle-path...> items for merkle tree path" << endl;
         return 1;
@@ -36,17 +37,18 @@ static int main_prove( int argc, char **argv )
     auto pk_filename = argv[2];
     auto proof_filename = argv[3];
     auto arg_root = argv[4];
-    auto arg_secret = argv[5];
-    auto arg_prehash = argv[6];
+    auto arg_exthash = argv[5];
+    auto arg_secret = argv[6];
     auto arg_msg = argv[7];
-    auto arg_address = argv[8];
+    auto arg_prehash = argv[8];
+    auto arg_address = argv[9];
     
     const char *arg_path[SSLES_TREE_DEPTH];
     for( size_t i = 0; i < SSLES_TREE_DEPTH; i++ ) {
-        arg_path[i] = argv[10 + i];
+        arg_path[i] = argv[11 + i];
     }
 
-    auto proof_json = ssles_prove(pk_filename, arg_root, arg_secret, arg_prehash, arg_msg, arg_address, arg_path);
+    auto proof_json = ssles_prove(pk_filename, arg_root, arg_exthash, arg_secret, arg_msg, arg_prehash, arg_address, arg_path);
     if( proof_json == nullptr ) {
         std::cerr << "Failed to prove\n";
         return 1;
