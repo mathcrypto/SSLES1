@@ -108,7 +108,7 @@ public:
     HashT sig_msg_hash; 
     merkle_path_authenticator<HashT> m_authenticator;
 
-    (
+   ssles_circuit (
         ProtoboardT &in_pb,
         const std::string &annotation_prefix
     ) :
