@@ -341,7 +341,7 @@ char *ssles_prove(
 
 int ssles_genkeys( const char *pk_file, const char *vk_file )
 {
-    return ethsnarks::stub_genkeys<ssles::mod_miximus>(pk_file, vk_file);
+    return ethsnarks::stub_genkeys<ssles::ssles_circuit>(pk_file, vk_file);
 }
 
 
