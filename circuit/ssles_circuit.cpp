@@ -271,7 +271,7 @@ char *ssles_prove_json( const char *pk_file, const char *in_json )
 
 
     const auto arg_path = ethsnarks::create_F_list(root.at("path"));
-    if( arg_path.size() != MIXIMUS_TREE_DEPTH )
+    if( arg_path.size() != SSLES_TREE_DEPTH )
     {
         std::cerr << "Path length doesn't match tree depth" << std::endl;
         return nullptr;
