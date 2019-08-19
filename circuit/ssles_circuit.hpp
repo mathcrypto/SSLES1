@@ -26,11 +26,14 @@ extern "C" {
 	char *ssles_prove(
 		const char *pk_file,
 		const char *in_root,
+		const char *in_exthash,
 		const char *in_secret,
-		const char *in_prehash,
 		const char *in_msg,
+		const char *in_prehash,
 		const char *in_address,
 		const char **in_path
+
+ 
 		);
 
 	int ssles_genkeys( const char *pk_file, const char *vk_file );
